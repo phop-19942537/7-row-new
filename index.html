@@ -308,11 +308,13 @@
     const headFragment = document.createDocumentFragment();
     pairs.forEach((p, idx) => {
         const thMain = document.createElement('th');
-        thMain.id = `th-m-${idx}`;         thMain.innerText = `${p.name}.M`;
+        thMain.id = `th-m-${idx}`;
+        thMain.innerText = `${p.name}.M`;
         headFragment.appendChild(thMain);
 
         const thMirror = document.createElement('th');
-        thMirror.id = `th-r-${idx}`;         thMirror.innerText = `${p.name}.R`;
+        thMirror.id = `th-r-${idx}`;
+        thMirror.innerText = `${p.name}.R`;
         headFragment.appendChild(thMirror);
     });
     thr.appendChild(headFragment);
@@ -429,7 +431,8 @@
         const fragment = document.createDocumentFragment();
         
         pairs.forEach((_, idx) => {
-            const thM = document.getElementById(`th-m-${idx}`);             const thR = document.getElementById(`th-r-${idx}`);
+            const thM = document.getElementById(`th-m-${idx}`);
+            const thR = document.getElementById(`th-r-${idx}`);
             if (thM) thM.className = "";
             if (thR) thR.className = "";
         });
@@ -471,7 +474,8 @@
                     if (signal && i === history.length && signal.pairIdx === idx) {
                         cellM.classList.add('locked-col');
                         cellR.classList.add('locked-col');
-                        const thM = document.getElementById(`th-m-${idx}`);                         const thR = document.getElementById(`th-r-${idx}`);
+                        const thM = document.getElementById(`th-m-${idx}`);
+                        const thR = document.getElementById(`th-r-${idx}`);
                         if(thM) thM.classList.add('highlight-th');
                         if(thR) thR.classList.add('highlight-th');
                     }
@@ -486,7 +490,28 @@
                         cellR.innerHTML = `${predR}<br><sup>${isWinR?'✅':'❌'}</sup>`;
                     } else {
                         cellM.innerHTML = `<span class="${predM==='P'?'p-text':'b-text'}" style="opacity:0.4">${predM}</span>`;
-                        cellR.innerHTML = `<span class="${predR==='P'?'p-text':'b-text'}" style="opacity:0.4">${predR}</span>`;                     }                     row.appendChild(cellM);                     row.appendChild(cellR);                 });             } else {                 for(let j=0; j < pairs.length * 2; j++) {                     const cellEmpty = document.createElement('td');                     cellEmpty.innerText = "-";                     row.appendChild(cellEmpty);                 }             }             fragment.appendChild(row);         }          tbody.innerHTML = "";         tbody.appendChild(fragment);          updateUI(mData.totalWin, mData.totalLoss, mData.logs);                  if (signal) {             const targetTh = document.getElementById(`th-m-${signal.pairIdx}`);
+                        cellR.innerHTML = `<span class="${predR==='P'?'p-text':'b-text'}" style="opacity:0.4">${predR}</span>`;
+                    }
+                    row.appendChild(cellM);
+                    row.appendChild(cellR);
+                });
+            } else {
+                for(let j=0; j < pairs.length * 2; j++) {
+                    const cellEmpty = document.createElement('td');
+                    cellEmpty.innerText = "-";
+                    row.appendChild(cellEmpty);
+                }
+            }
+            fragment.appendChild(row);
+        }
+
+        tbody.innerHTML = "";
+        tbody.appendChild(fragment);
+
+        updateUI(mData.totalWin, mData.totalLoss, mData.logs);
+        
+        if (signal) {
+            const targetTh = document.getElementById(`th-m-${signal.pairIdx}`);
             if (targetTh) {
                 targetTh.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
@@ -507,11 +532,50 @@
         if (history.length < STEP_BACK) {
             statusEl.innerHTML = `<span class="wait-status">ฐานข้อมูลคีย์: ${history.length}/${STEP_BACK}</span>`;
         } else if (signal) {
-            const streakText = signal.streak > 0 ? `<span class="streak-badge">🔥 ชนะติดกัน ${signal.streak} ตา</span>` : '';             statusEl.innerHTML = `<div>PAIR ${signal.pairIdx + 1} แทงตาม: <span class="next-bet">${signal.pred === 'P' ? 'PLAYER (P)' : 'BANKER (B)'}</span> <span class="step-badge">ไม้ที่ ${signal.step}/${maxMartingale}</span>${streakText}</div>`;
+            const streakText = signal.streak > 0 ? `<span class="streak-badge">🔥 ชนะติดกัน ${signal.streak} ตา</span>` : '';
+            statusEl.innerHTML = `<div>PAIR ${signal.pairIdx + 1} แทงตาม: <span class="next-bet">${signal.pred === 'P' ? 'PLAYER (P)' : 'BANKER (B)'}</span> <span class="step-badge">ไม้ที่ ${signal.step}/${maxMartingale}</span> ${streakText}</div>`;
         } else {
             statusEl.innerHTML = `<span class="wait-status">☕ รอสัญญาณ (สแกน ❌❌❌ เพื่อเข้าทำ)</span>`;
         }
 
         const logBox = document.getElementById('history-log-box');
         if (logs.length === 0) {
-            logBox.innerHTML = `<div style="color: #777; font-size: 10px;
+            logBox.innerHTML = `<div style="color: #777; font-size: 10px; text-align: center;">--- ยังไม่มีประวัติการยิงสไนเปอร์ ---</div>`;
+        } else {
+            let html = "";
+            logs.slice().reverse().forEach(item => {
+                if (item.status === 'WIN_SERIES') {
+                    html += `<div class="log-item"><span>รอบที่ ${item.round} (PAIR ${item.pairIdx + 1})</span> <span class="log-win">ชนะต่อเนื่อง ${item.streak} ตา 🔥</span></div>`;
+                } else {
+                    html += `<div class="log-item"><span>รอบที่ ${item.round} (PAIR ${item.pairIdx + 1})</span> <span class="log-loss">แพ้ หลุดไม้ ${item.step} ❌</span></div>`;
+                }
+            });
+            logBox.innerHTML = html;
+        }
+    }
+
+    function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+    
+    function updateMaxStep(val) {
+        maxMartingale = parseInt(val);
+        localStorage.setItem('parallel_tracker_max_step', maxMartingale);
+        document.getElementById('stat-max-step').innerText = maxMartingale + " ไม้";
+        saveAndRenderFast();
+    }
+
+    function undo() { history.pop(); saveAndRenderFast(); }
+    function resetAll() { if(confirm("ต้องการล้างข้อมูลและประวัติทั้งหมดใช่ไหม?")) { history = []; signal = null; saveAndRenderFast(); } }
+    
+    function saveAndRenderFast() { 
+        localStorage.setItem('parallel_tracker_v64_h', JSON.stringify(history)); 
+        if (!isRendering) {
+            isRendering = true;
+            requestAnimationFrame(renderTable);
+        }
+    }
+
+    renderTable();
+</script>
+</body>
+</html>
