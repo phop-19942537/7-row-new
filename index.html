@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>64-Pair Sniper Tracker - Fast Martingale & Streak Flow</title>
+    <title>64-Pair Sniper Tracker - Fast Martingale</title>
     <style>
         * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
         body { background: transparent; color: #eee; margin: 0; padding: 0; overflow: hidden; }
@@ -350,7 +350,6 @@
         }
     }
 
-    // ประมวลผลระบบมาร์ติงเกล + ล็อคไหลกินยาว
     function processMartingaleRounds() {
         let logs = [];
         let totalWin = 0, totalLoss = 0;
@@ -390,21 +389,22 @@
                 const actual = history[i];
 
                 if (actual === pred) {
+                    // บันทึกผลชนะพร้อมบอกจำนวนไม้ที่ชนะทันที
+                    logs.push({ round: roundCount++, status: 'WIN', step: currentStep, pairIdx: activeSignal.pairIdx });
                     winStreak++;
                     totalWin++;
-                    currentStep = 1; // ชนะแล้วรีเซ็ตไม้ทบ แต่ล็อคไหลยาวต่อ
+                    currentStep = 1; // ชนะแล้วรีเซ็ตไม้ทบ แต่ยังล็อคฝั่งเดิมไว้แทงต่อ
                 } else {
                     if (winStreak > 0) {
-                        // ถ้าเคยชนะกินยาวมาแล้วแล้วเพิ่งแพ้ -> ตัดจบซีรีส์
-                        logs.push({ round: roundCount++, status: 'WIN_SERIES', streak: winStreak, pairIdx: activeSignal.pairIdx });
+                        // เคยชนะกินยาวมาแล้วแต่ตาปัจจุบันแพ้ -> ปลดล็อค เริ่มสแกนหาใหม่
                         activeSignal = null;
                         currentStep = 1;
                         winStreak = 0;
                     } else if (currentStep < maxMartingale) {
-                        // แพ้แต่ยังทบเงินแก้ได้ -> ทบไม้ถัดไป
+                        // แพ้แต่ยังมีไม้ทบ -> ทบไม้ถัดไป
                         currentStep++;
                     } else {
-                        // แพ้จนหลุดไม้สูงสุด (BUST)
+                        // แพ้หลุดไม้สูงสุด (BUST)
                         logs.push({ round: roundCount++, status: 'LOSS', step: maxMartingale, pairIdx: activeSignal.pairIdx });
                         totalLoss++;
                         activeSignal = null;
@@ -532,7 +532,7 @@
         if (history.length < STEP_BACK) {
             statusEl.innerHTML = `<span class="wait-status">ฐานข้อมูลคีย์: ${history.length}/${STEP_BACK}</span>`;
         } else if (signal) {
-            const streakText = signal.streak > 0 ? `<span class="streak-badge">🔥 ชนะติดกัน ${signal.streak} ตา</span>` : '';
+            const streakText = signal.streak > 0 ? `<span class="streak-badge">🔥 ล็อคกินยาว (ชนะแล้ว ${signal.streak} ตา)</span>` : '';
             statusEl.innerHTML = `<div>PAIR ${signal.pairIdx + 1} แทงตาม: <span class="next-bet">${signal.pred === 'P' ? 'PLAYER (P)' : 'BANKER (B)'}</span> <span class="step-badge">ไม้ที่ ${signal.step}/${maxMartingale}</span> ${streakText}</div>`;
         } else {
             statusEl.innerHTML = `<span class="wait-status">☕ รอสัญญาณ (สแกน ❌❌❌ เพื่อเข้าทำ)</span>`;
@@ -544,8 +544,8 @@
         } else {
             let html = "";
             logs.slice().reverse().forEach(item => {
-                if (item.status === 'WIN_SERIES') {
-                    html += `<div class="log-item"><span>รอบที่ ${item.round} (PAIR ${item.pairIdx + 1})</span> <span class="log-win">ชนะต่อเนื่อง ${item.streak} ตา 🔥</span></div>`;
+                if (item.status === 'WIN') {
+                    html += `<div class="log-item"><span>รอบที่ ${item.round} (PAIR ${item.pairIdx + 1})</span> <span class="log-win">ชนะ ไม้ ${item.step} ✅</span></div>`;
                 } else {
                     html += `<div class="log-item"><span>รอบที่ ${item.round} (PAIR ${item.pairIdx + 1})</span> <span class="log-loss">แพ้ หลุดไม้ ${item.step} ❌</span></div>`;
                 }
