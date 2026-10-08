@@ -131,7 +131,7 @@
         }
         .step-badge {
             background: #e67e22; color: #fff; padding: 1px 5px;
-            border-radius: 3px; font-size: 10px; margin-left: 4px;
+            border-radius: 3px; font-size: 10px; margin-left: 4px; font-weight: bold;
         }
         .streak-badge {
             background: #2ecc71; color: #000; padding: 1px 5px;
@@ -143,7 +143,6 @@
             from { opacity: 1; } to { opacity: 0.6; }
         }
 
-        /* Modal ตั้งค่า */
         .modal {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center;
@@ -192,7 +191,7 @@
 
     <div class="content-area">
         <div class="history-log-box" id="history-log-box">
-            <div style="color: #777; font-size: 10px; text-align: center;">--- ประวัติผลบันทึกรอบการยิงมาร์ติงเกล ---</div>
+            <div style="color: #777; font-size: 10px; text-align: center;">--- ประวัติผลบันทึกรอบการยิงมาร์ติงเกลข้าม Pair ---</div>
         </div>
 
         <div class="table-container" id="scroll-area">
@@ -350,6 +349,7 @@
         }
     }
 
+    // Logic ที่แก้ไขแล้ว: แทงผิดย้าย Pair + ทบไม้ต่ออย่างถูกต้อง
     function processMartingaleRounds() {
         let logs = [];
         let totalWin = 0, totalLoss = 0;
@@ -360,6 +360,7 @@
 
         let i = STEP_BACK + 3;
         while (i <= history.length) {
+            // สแกนหา Pair ที่ผิดติดกัน 3 ตา (❌❌❌)
             if (!activeSignal) {
                 for (let idx = 0; idx < pairs.length; idx++) {
                     const p = pairs[idx];
@@ -375,8 +376,6 @@
                             const lastActiveSide = isMainPrevWin ? 'main' : 'mirror';
 
                             activeSignal = { pairIdx: idx, side: lastActiveSide };
-                            currentStep = 1;
-                            winStreak = 0;
                             break;
                         }
                     }
@@ -389,22 +388,20 @@
                 const actual = history[i];
 
                 if (actual === pred) {
-                    // บันทึกผลชนะพร้อมบอกจำนวนไม้ที่ชนะทันที
+                    // ชนะ -> บันทึกประวัติชนะไม้ที่ทบอยู่ แล้วล็อคกินยาวต่อ
                     logs.push({ round: roundCount++, status: 'WIN', step: currentStep, pairIdx: activeSignal.pairIdx });
                     winStreak++;
                     totalWin++;
-                    currentStep = 1; // ชนะแล้วรีเซ็ตไม้ทบ แต่ยังล็อคฝั่งเดิมไว้แทงต่อ
+                    currentStep = 1; // ชนะแล้วรีเซ็ตไม้ทบเป็นไม้ 1 เสมอ
                 } else {
-                    if (winStreak > 0) {
-                        // เคยชนะกินยาวมาแล้วแต่ตาปัจจุบันแพ้ -> ปลดล็อค เริ่มสแกนหาใหม่
-                        activeSignal = null;
-                        currentStep = 1;
-                        winStreak = 0;
-                    } else if (currentStep < maxMartingale) {
-                        // แพ้แต่ยังมีไม้ทบ -> ทบไม้ถัดไป
+                    // แทงผิด
+                    if (currentStep < maxMartingale) {
+                        // ยังไม่เกินไม้ทบสูงสุด -> ย้าย Pair อื่น และ เพิ่มไม้ทบ (+1)
                         currentStep++;
+                        activeSignal = null; 
+                        winStreak = 0;
                     } else {
-                        // แพ้หลุดไม้สูงสุด (BUST)
+                        // แพ้จนชนไม้ทบสูงสุด (BUST) -> บันทึกแพ้ แล้วเริ่มรอบใหม่ที่ไม้ 1
                         logs.push({ round: roundCount++, status: 'LOSS', step: maxMartingale, pairIdx: activeSignal.pairIdx });
                         totalLoss++;
                         activeSignal = null;
